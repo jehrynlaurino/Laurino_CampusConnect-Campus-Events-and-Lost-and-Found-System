@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: campusconnect
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/campusconnect}
+    username: ${DB_USERNAME:campusconnect}
+    password: ${DB_PASSWORD:dev_only_change_me}
+  jpa:
+    hibernate:
+      ddl-auto: update # demo convenience; use Flyway migrations before production
+    open-in-view: false
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false} # MUST be true behind HTTPS in production
+app:
+  allowed-email-domain: ${APP_ALLOWED_EMAIL_DOMAIN:}
+  bootstrap-admin:
+    email: ${APP_ADMIN_EMAIL:}
+    password: ${APP_ADMIN_PASSWORD:}
+    name: ${APP_ADMIN_NAME:Campus Administrator}

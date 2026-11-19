@@ -1,0 +1,9 @@
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+app:
+  security:
+    require-https: true

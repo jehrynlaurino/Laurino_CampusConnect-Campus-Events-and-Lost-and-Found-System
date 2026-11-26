@@ -17,7 +17,7 @@ export function RecordForm({kind}) {
     if(events){form.startsAt=apiTime(form.startsAt);form.endsAt=apiTime(form.endsAt);form.capacity=form.capacity?Number(form.capacity):null;
       if(form.endsAt<=form.startsAt){setError('End time must follow the start time.');return}
     }else{form.incidentAt=apiTime(form.incidentAt);if(Date.parse(form.incidentAt)>Date.now()){setError('Incident time cannot be in the future.');return}}
-    form.latitude=pin[0];form.longitude=pin[1];setBusy(true);setError('');
+    [form.latitude,form.longitude]=pin.map(value=>value==null?null:Number(value));setBusy(true);setError('');
     try{const result=await api(base+(id?'/'+id:''),{method:id?'PUT':'POST',body:form});
       navigate('/'+kind+'/'+(id||result.id),{replace:true,state:{notice:id?'Changes saved.':events?'Event draft saved.':'Report saved. You can now add photos.'}})}
     catch(err){setError(err.message)} finally{setBusy(false)}

@@ -40,13 +40,22 @@ class PhotoWorkflowTest {
         png=new MockMultipartFile("file","item.png","image/png",output.toByteArray());
     }
     @Test void successfulAdapterContractEnforcesThreeAndQueuesRemoval() throws Exception {
-        when(provider.upload(anyString(),any(),eq("png"))).thenReturn("https://example.test/test-photo");
+        when(provider.upload(anyString(),any(),anyString())).thenReturn("https://example.test/test-photo");
         var first=photos.upload(report,actor,png);
-        photos.upload(report,actor,png);photos.upload(report,actor,png);
+        var jpeg=new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(2,2,BufferedImage.TYPE_INT_RGB),"jpeg",jpeg);
+        photos.upload(report,actor,new MockMultipartFile("file","item.jpg","image/jpeg",jpeg.toByteArray()));
+        // A 1 x 1 lossless WebP, decoded by the same ImageIO reader used in production.
+        byte[] webp=java.util.Base64.getDecoder().decode("UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAdQnoI2of+BiOh/AAA=");
+        photos.upload(report,actor,new MockMultipartFile("file","item.webp","image/webp",webp));
         assertThrows(ApiException.class,()->photos.upload(report,actor,png));
-        verify(provider,times(3)).upload(anyString(),any(),eq("png"));
+        verify(provider,times(3)).upload(anyString(),any(),anyString());
+        assertEquals(3,((java.util.List<?>)reports.detail(report,actor).get("images")).size());
         var args=Map.of("id",first.get("id"));
-        String publicId=(String)data.row("select public_id from report_image where id=:id",args).get("public_id");
+        var saved=data.row("select public_id,secure_url from report_image where id=:id",args);
+        String publicId=(String)saved.get("public_id");
+        verify(provider).upload(eq(publicId),any(),eq("png"));
+        assertEquals("https://example.test/test-photo",saved.get("secure_url"));
         photos.remove(report,((Number)first.get("id")).longValue(),actor);
         assertTrue(data.rows("select id from report_image where id=:id",args).isEmpty());
         cleanup.retry();

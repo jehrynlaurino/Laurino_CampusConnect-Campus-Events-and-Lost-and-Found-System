@@ -44,7 +44,7 @@ public class Events {
         @RequestParam(required=false) LocalDate from,@RequestParam(required=false) LocalDate to) {
         Filter f=new Filter(page);
         switch(scope) {
-            case "public" -> f.sql.append(" and a.status='PUBLISHED' and not a.hidden and a.starts_at>current_timestamp");
+            case "public" -> f.sql.append(" and a.status='PUBLISHED' and not a.hidden");
             case "mine" -> f.condition("a.owner_id=:owner","owner",data.user(auth).getId());
             case "admin" -> requireAdmin(data.user(auth));
             default -> throw invalid("Invalid event listing.");
@@ -114,6 +114,12 @@ public class Events {
             default -> throw invalid("Unknown event action.");
         };
         data.db.update("update campus_event set "+change+", updated_at=current_timestamp where id=:id",Map.of("id",id));
+        if ("cancel".equals(decision.action)) {
+            data.db.update("""
+                update event_registration set status='CANCELLED', cancelled_at=current_timestamp
+                where event_id=:id and status='ACTIVE'
+                """,Map.of("id",id));
+        }
         if(actor.getRole()==Role.ADMIN) data.db.update("insert into moderation_history(admin_id,event_id,action) values(:u,:id,:act)",
             Map.of("u",actor.getId(),"id",id,"act",decision.action));
     }

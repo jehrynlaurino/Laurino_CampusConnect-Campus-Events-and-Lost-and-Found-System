@@ -28,6 +28,13 @@ public class AppUser {
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    /**
+     * Changes whenever credentials change. Existing records may be null while
+     * Hibernate safely adds this column; null is treated as version zero.
+     */
+    @Column(name = "credential_version")
+    private Long credentialVersion = 0L;
+
     protected AppUser() {}
 
     public AppUser(String fullName, String email, String passwordHash, Role role) {
@@ -48,4 +55,6 @@ public class AppUser {
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public Instant getCreatedAt() { return createdAt; }
+    public long getCredentialVersion() { return credentialVersion == null ? 0L : credentialVersion; }
+    public void bumpCredentialVersion() { credentialVersion = getCredentialVersion() + 1; }
 }

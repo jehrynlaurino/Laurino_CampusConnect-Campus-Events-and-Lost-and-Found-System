@@ -12,6 +12,14 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
 server:
   port: ${PORT:8080}
   servlet:
@@ -27,3 +35,6 @@ app:
     email: ${APP_ADMIN_EMAIL:}
     password: ${APP_ADMIN_PASSWORD:}
     name: ${APP_ADMIN_NAME:Campus Administrator}
+  password-reset:
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    from: ${MAIL_FROM:no-reply@campusconnect.local}

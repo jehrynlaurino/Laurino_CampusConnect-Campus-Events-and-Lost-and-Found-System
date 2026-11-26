@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.*;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.*;
@@ -15,6 +13,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.boot.web.servlet.ServletListenerRegistrationBean;
 import org.springframework.beans.factory.annotation.Value;
 import java.util.Locale;
 import java.util.Map;
@@ -24,6 +26,14 @@ import java.util.Map;
 public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(12); }
+
+    @Bean
+    public SessionRegistry sessionRegistry() { return new SessionRegistryImpl(); }
+
+    @Bean
+    public ServletListenerRegistrationBean<HttpSessionEventPublisher> httpSessionEventPublisher() {
+        return new ServletListenerRegistrationBean<>(new HttpSessionEventPublisher());
+    }
 
     @Bean
     public UserDetailsService userDetailsService(UserRepository repo) {
@@ -37,17 +47,26 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, UserRepository users, ObjectMapper json,
+            SessionRegistry sessionRegistry,
             @Value("${app.security.require-https:false}") boolean requireHttps)
             throws Exception {
         HttpSessionCsrfTokenRepository csrf = new HttpSessionCsrfTokenRepository();
         csrf.setHeaderName("X-CSRF-TOKEN");
         http
           .csrf(cs -> cs.csrfTokenRepository(csrf))
-          .sessionManagement(session -> session.sessionFixation().migrateSession())
+          .sessionManagement(session -> session
+              .sessionFixation(fixation -> fixation.migrateSession())
+              .maximumSessions(-1)
+              .sessionRegistry(sessionRegistry)
+              .expiredSessionStrategy(event -> {
+                  HttpServletResponse response = event.getResponse();
+                  response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                  response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                  json.writeValue(response.getWriter(), Map.of("error", "Please sign in again."));
+              }))
           .addFilterBefore(new DatabaseAccountFilter(users), AuthorizationFilter.class)
           .authorizeHttpRequests(a -> a
-              .requestMatchers("/api/auth/csrf", "/api/auth/register", "/api/health").permitAll()
-              .requestMatchers("/api/auth/login").permitAll()
+              .requestMatchers("/api/auth/csrf", "/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/health").permitAll()
               .requestMatchers("/error").permitAll()
               .anyRequest().authenticated())
           .httpBasic(h -> h.disable())
@@ -57,6 +76,8 @@ public class SecurityConfig {
               .passwordParameter("password")
               .successHandler((request, response, auth) -> {
                   AppUser u = users.findByEmail(auth.getName()).orElseThrow();
+                  request.getSession(true).setAttribute(DatabaseAccountFilter.CREDENTIAL_VERSION_ATTRIBUTE,
+                      u.getCredentialVersion());
                   response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                   json.writeValue(response.getWriter(), UserResponse.from(u));
               })

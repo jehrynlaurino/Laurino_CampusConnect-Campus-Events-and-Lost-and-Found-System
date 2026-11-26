@@ -13,12 +13,17 @@ import java.util.Locale;
 public class AccountService {
     private final UserRepository users;
     private final PasswordEncoder passwords;
+    private final PasswordResetTokenRepository resetTokens;
+    private final SessionInvalidationService sessions;
     private final String allowedDomain;
 
-    public AccountService(UserRepository users, PasswordEncoder passwords,
+    public AccountService(UserRepository users, PasswordEncoder passwords, PasswordResetTokenRepository resetTokens,
+                          SessionInvalidationService sessions,
                           @Value("${app.allowed-email-domain:}") String allowedDomain) {
         this.users = users;
         this.passwords = passwords;
+        this.resetTokens = resetTokens;
+        this.sessions = sessions;
         this.allowedDomain = allowedDomain.strip().toLowerCase(Locale.ROOT).replaceFirst("^@", "");
     }
 
@@ -69,6 +74,9 @@ public class AccountService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Use a different new password.");
         }
         user.setPasswordHash(passwords.encode(req.newPassword()));
+        user.bumpCredentialVersion();
         users.save(user);
+        resetTokens.invalidateActiveByUserId(user.getId(), java.time.Instant.now());
+        sessions.invalidateUserSessions(user.getEmail());
     }
 }

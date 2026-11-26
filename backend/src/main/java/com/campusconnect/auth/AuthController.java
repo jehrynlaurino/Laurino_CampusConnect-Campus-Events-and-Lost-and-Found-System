@@ -7,13 +7,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AccountService service;
-    public AuthController(AccountService service) { this.service = service; }
+    private final PasswordResetService passwordResets;
+    public AuthController(AccountService service, PasswordResetService passwordResets) {
+        this.service = service;
+        this.passwordResets = passwordResets;
+    }
 
     // This token is bound to the server-side session and must be sent in X-CSRF-TOKEN.
     @GetMapping("/csrf")
@@ -37,8 +42,22 @@ public class AuthController {
     }
 
     @PutMapping("/change-password")
-    public Map<String, String> password(Authentication auth, @Valid @RequestBody AuthDtos.PasswordRequest req) {
+    public Map<String, String> password(Authentication auth, @Valid @RequestBody AuthDtos.PasswordRequest req,
+                                        HttpServletRequest request) {
         service.changePassword(auth.getName(), req);
+        if (request.getSession(false) != null) request.getSession(false).invalidate();
         return Map.of("message", "Password changed successfully.");
+    }
+
+    @PostMapping("/forgot-password")
+    public Map<String, String> forgotPassword(@Valid @RequestBody AuthDtos.ForgotPasswordRequest req) {
+        passwordResets.requestReset(req.email());
+        return Map.of("message", "If an account exists for this email, a password reset link will be sent.");
+    }
+
+    @PostMapping("/reset-password")
+    public Map<String, String> resetPassword(@Valid @RequestBody AuthDtos.ResetPasswordRequest req) {
+        passwordResets.resetPassword(req);
+        return Map.of("message", "Password reset successfully. Please sign in with your new password.");
     }
 }

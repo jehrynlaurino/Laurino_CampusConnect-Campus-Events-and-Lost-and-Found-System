@@ -1,10 +1,26 @@
-# CampusConnect – Project Increment 1
+# CampusConnect – Project Increment 2
 
 **CampusConnect: Campus Events and Lost-and-Found System**  
 **IT342 • Systems Integration and Architecture 1**  
-**Increment 1: User Accounts and Authentication**
+**Increment 2: Profile Management and Password Security**
 
-This is the React + Spring Boot + PostgreSQL implementation of **SRS FR-001 to FR-005**.
+This is the React + Spring Boot + PostgreSQL implementation of **SRS FR-001 to FR-005**, including the Increment 2 profile and password-security work.
+
+## Increment 2 additions
+
+### Profile management
+
+Every authenticated MEMBER, ORGANIZER, and ADMIN can open **My Account**, view their own persisted full name, registered email, and assigned role, and change only their full name. The backend derives the account exclusively from the signed-in session; the registered email and role are intentionally read-only because the approved SRS does not specify email-change verification. Profile API responses never contain password hashes, account-status controls, or privileged fields.
+
+### Secure forgot/reset password
+
+The login screen now links to a working **Forgot password?** page. `POST /api/auth/forgot-password` returns the same generic message for every valid request to prevent account enumeration. For an active account it sends a CampusConnect-branded email through Spring Mail using a trusted configured frontend URL. Docker Compose includes Mailpit for local delivery and viewing at `http://localhost:8025`.
+
+Reset tokens use 256 bits of `SecureRandom` entropy and only their SHA-256 hashes are stored. A token lasts 15 minutes, is single-use, is atomically consumed with the password update, and a new request invalidates prior outstanding tokens. Invalid, expired, and used links are rejected. Recovery requests and reset attempts have separate 15-minute in-memory rate limits. Tokens and plaintext passwords are redacted from DTO log representations and are never returned in API responses.
+
+### Change password and session invalidation
+
+The authenticated **Change password** page requires the current password, a different strong new password, and matching confirmation. Password changes and resets use BCrypt, invalidate all active reset tokens, and invalidate the current and other authenticated sessions. A persisted credential-version check backs up Spring Security’s session registry so an older session is rejected on its next request even if a container did not register it in the session registry.
 
 ## Implemented features (real database, not mock accounts)
 
@@ -25,7 +41,7 @@ Events, registrations, maps, Cloudinary and lost-and-found records are planned f
 - Java **21** (JDK)
 - Apache Maven **3.9+** (`mvn --version` should work)
 - Node.js **20.19+ or 22+**, with npm
-- Docker Desktop (for the PostgreSQL database) **or** a locally installed PostgreSQL 16 server
+- Docker Desktop (for the PostgreSQL database and Mailpit email inbox) **or** a locally installed PostgreSQL 16 server plus SMTP service
 - Git (for your individual repository)
 
 ## Quick setup (Windows PowerShell)
@@ -38,7 +54,7 @@ Open the project folder in VS Code or IntelliJ:
    docker compose --env-file .env up -d
    docker compose ps
    ```
-   For a local PostgreSQL installation instead, manually create a database `campusconnect` and a role `campusconnect` with the password set in `.env`; skip Docker.
+   This starts PostgreSQL on port `5432`, Mailpit SMTP on port `1025`, and the Mailpit inbox at **http://localhost:8025**. For a local PostgreSQL installation instead, manually create a database `campusconnect` and a role `campusconnect` with the password set in `.env`; configure a real SMTP service for password-reset delivery.
 3. Start the Spring Boot backend in a new PowerShell terminal:
    ```powershell
    .\scripts\start-backend.ps1
@@ -50,7 +66,7 @@ Open the project folder in VS Code or IntelliJ:
    npm install
    npm run dev
    ```
-5. Open **http://localhost:5173**. Register a Member, log in, and test your dashboard. Sign out. Then log in using the administrator credentials you chose, open **User Management**, and change your Member to `ORGANIZER`.
+5. Open **http://localhost:5173**. Register a Member, log in, and test your dashboard, **My Account**, and **Change password**. Sign out. To demonstrate reset password, choose **Forgot password?**, then open the Mailpit inbox and follow the real emailed link. Then log in using the administrator credentials you chose, open **User Management**, and change your Member to `ORGANIZER`.
 6. Refresh the Member's browser (or log out and in). They should see the Organizer dashboard. An Admin cannot be created via public registration.
 
 ### Mac / Linux
@@ -78,7 +94,9 @@ PostgreSQL 16 (localhost:5432) -> app_users (real persisted accounts)
 
 ### Account fields stored
 
-`id`, `full_name`, `email` (unique), `password_hash`, `role`, `active`, `created_at`.
+`id`, `full_name`, `email` (unique), `password_hash`, `role`, `active`, `created_at`, `credential_version`.
+
+Increment 2 adds `password_reset_tokens` with `id`, `user_id` (foreign key), a unique SHA-256 `token_hash`, `created_at`, `expires_at`, and `used_at`, plus user and expiration indexes. The project retains JPA's non-destructive `ddl-auto=update` strategy, so an existing development database gains these columns/tables without dropping existing accounts. Back up a real database before schema updates.
 
 ### Endpoints
 
@@ -90,7 +108,9 @@ PostgreSQL 16 (localhost:5432) -> app_users (real persisted accounts)
 | `/api/auth/logout` | POST | Signed in + CSRF | Invalidate session |
 | `/api/auth/me` | GET | Signed in | Return current persisted account, no password hash |
 | `/api/auth/profile` | PUT JSON | Signed in + CSRF | Edit full name |
-| `/api/auth/change-password` | PUT JSON | Signed in + CSRF | Verify current password and matching new-password confirmation, then hash it |
+| `/api/auth/change-password` | PUT JSON | Signed in + CSRF | Verify current password and matching different new password, BCrypt-hash it, invalidate reset tokens and all sessions |
+| `/api/auth/forgot-password` | POST JSON | Public + CSRF | Return a generic response, rate-limit requests, and email a secure reset link for an active matching account |
+| `/api/auth/reset-password` | POST JSON | Public + CSRF | Atomically consume a valid 15-minute reset token, BCrypt-hash the new password, and invalidate all sessions |
 | `/api/dashboard/member` | GET | MEMBER only | Role-authorized account dashboard |
 | `/api/dashboard/organizer` | GET | ORGANIZER only | Role-authorized account dashboard |
 | `/api/dashboard/admin` | GET | ADMIN only | Role-authorized account dashboard |
@@ -112,7 +132,13 @@ npm install
 npm run build
 ```
 
-The backend integration tests verify: registration and persisted BCrypt hash; password complexity, confirmation and email normalization; rejection of duplicates/invalid fields; invalid password handling; unauthenticated access denial; MEMBER/ADMIN route separation; logout; admin role promotion; immediate account deactivation.
+The backend integration suite has **12 H2-backed tests in PostgreSQL compatibility mode**. It verifies registration and persisted BCrypt hash; password complexity, confirmation and email normalization; rejection of duplicates/invalid fields; login/logout; MEMBER/ADMIN route separation; admin role promotion; immediate account deactivation; persisted own-profile updates; password changes; invalidation of a second active session; generic unknown-account recovery responses; reset email construction; token hashing, expiry, replacement, and single use; old-password rejection; and recovery/reset rate limits. `npm run build` checks the React production bundle.
+
+### Actual local verification status (November 26, 2026)
+
+- Backend test suite: passed — 12 tests, 0 failures, 0 errors after the Increment 2 session-invalidation fix.
+- Frontend production build: passed — Vite transformed 49 modules and completed successfully in 510 ms; see `TESTING.md` for the result.
+- Docker/PostgreSQL/Mailpit browser demonstration: **not executed on this school-managed computer** because Docker Desktop and PostgreSQL require administrator approval. The Compose configuration and application integration are present, but this is intentionally not represented as live-email or live-PostgreSQL evidence.
 
 ### Demonstration checklist (do these live)
 
@@ -123,7 +149,10 @@ The backend integration tests verify: registration and persisted BCrypt hash; pa
 - [ ] Show `app_users.password_hash` in PostgreSQL (BCrypt hash, never plaintext)
 - [ ] Enter a wrong password, then log in correctly
 - [ ] Open the MEMBER dashboard; attempt ADMIN endpoint and see HTTP 403
-- [ ] Change profile name and password, then verify new credentials
+- [ ] Change profile name, refresh, and confirm the persisted value is still shown
+- [ ] Change password and confirm an older second browser session is rejected
+- [ ] Request a reset password link and inspect the real message in Mailpit; confirm an unknown email receives the same generic message
+- [ ] Use the reset link once, confirm the old password fails, the new password succeeds, and a reused link is rejected
 - [ ] Use admin account to promote Member to Organizer
 - [ ] Confirm Organizer dashboard appears after refreshing/re-sign-in
 - [ ] As admin, deactivate a user; their existing session becomes unauthorized

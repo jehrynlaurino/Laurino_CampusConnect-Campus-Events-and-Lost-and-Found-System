@@ -54,7 +54,16 @@ export function AuthProvider({ children }) {
     return updated;
   };
 
-  return <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, checkSession }}>
+  const changePassword = async ({ currentPassword, newPassword, confirmNewPassword }) => {
+    const response = await api('/api/auth/change-password', {
+      method: 'PUT', body: { currentPassword, newPassword, confirmNewPassword },
+    });
+    setUser(null);
+    try { await refreshCsrf(); } catch { /* A new token will be requested before the next write. */ }
+    return response;
+  };
+
+  return <AuthContext.Provider value={{ user, loading, login, register, logout, updateProfile, changePassword, checkSession }}>
     {children}
   </AuthContext.Provider>;
 }

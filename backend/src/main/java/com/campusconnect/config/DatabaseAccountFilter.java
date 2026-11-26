@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -21,6 +22,7 @@ import java.util.Optional;
  * leave a stale authenticated session with privileges from an old login.
  */
 public class DatabaseAccountFilter extends OncePerRequestFilter {
+    public static final String CREDENTIAL_VERSION_ATTRIBUTE = "CAMPUSCONNECT_CREDENTIAL_VERSION";
     private final UserRepository users;
     public DatabaseAccountFilter(UserRepository users) { this.users = users; }
 
@@ -36,6 +38,17 @@ public class DatabaseAccountFilter extends OncePerRequestFilter {
                 response.setStatus(401);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\":\"This account is no longer active.\"}");
+                return;
+            }
+            HttpSession session = request.getSession(false);
+            Object storedVersion = session == null ? null : session.getAttribute(CREDENTIAL_VERSION_ATTRIBUTE);
+            long sessionVersion = storedVersion instanceof Number version ? version.longValue() : 0L;
+            if (sessionVersion != existing.get().getCredentialVersion()) {
+                if (session != null) session.invalidate();
+                SecurityContextHolder.clearContext();
+                response.setStatus(401);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Please sign in again.\"}");
                 return;
             }
             String authority = "ROLE_" + existing.get().getRole().name();

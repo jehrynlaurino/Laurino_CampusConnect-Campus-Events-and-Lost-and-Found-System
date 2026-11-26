@@ -24,6 +24,7 @@ export default function Layout({ children }) {
         <NavLink to={rolePath(user.role)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>◫ <span>Dashboard</span></NavLink>
         <NavLink to="/account" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>◎ <span>My account</span></NavLink>
         {user.role === 'ADMIN' && <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>♙ <span>User management</span></NavLink>}
+        <NavLink to="/change-password" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Password <span>Change password</span></NavLink>
       </nav>
       <div className="sidebar-bottom">
         <div className="sidebar-status"><span className="status-dot"/> Increment 1 • Accounts</div>

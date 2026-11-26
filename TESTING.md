@@ -19,6 +19,14 @@ The backend integration tests verify:
 - Generic forgot-password responses for unknown accounts, recovery-request rate limiting, and real Spring Mail message construction through a mocked mail transport.
 - SHA-256-only reset-token storage, 15-minute expiry rejection, replacement-token invalidation, atomic single use, reset-attempt rate limiting, old-password rejection, and existing-session invalidation after reset.
 
+## Browser run with H2 and local SMTP
+
+Figures 1–9 in the [Increment 2 report](docs/Increment-2-Completion-Report.pdf) follow a disposable MEMBER account in the React frontend and Spring Boot backend. The browser run used an isolated H2 database and a local SMTP receiver.
+
+- The member saved a name change and verified it after refreshing the page.
+- A mismatched password confirmation produced a validation error. A matching submission changed the password and returned the member to sign-in.
+- The receiver accepted the real reset email. Its link opened the form, reset the password once, and produced an error on reuse. The member then signed in with the recovered password.
+
 ## Live Docker/PostgreSQL/Mailpit checklist
 
 These checks are intentionally not marked as complete because Docker Desktop and a PostgreSQL runtime were unavailable on the school-managed computer. Run them with `docker compose --env-file .env up -d` before a live demonstration, then capture only real screenshots:

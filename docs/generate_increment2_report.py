@@ -2,9 +2,12 @@
 
 from pathlib import Path
 from html import escape
+from base64 import b64encode
 import sys
 
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt
 from docx.oxml.table import CT_Tbl
 from docx.oxml.text.paragraph import CT_P
 from docx.table import Table
@@ -15,6 +18,17 @@ DOCS = Path(__file__).parent
 TEMPLATE = DOCS / "IT342-PD-Completion-Report-Template.docx"
 OUTPUT = DOCS / "Increment-2-Completion-Report.docx"
 REPOSITORY = "https://github.com/jehrynlaurino/Laurino_CampusConnect-Campus-Events-and-Lost-and-Found-System"
+SCREENSHOTS = [
+    ("01-profile-saved.png", "The member saves a new full name. It also persisted after a browser refresh."),
+    ("02-password-validation.png", "The change-password form flags a confirmation that differs from the new password."),
+    ("03-password-changed.png", "After the password change, CampusConnect asks the member to sign in again."),
+    ("04-reset-request.png", "The recovery form acknowledges the request with its generic response."),
+    ("05-received-email.png", "The local SMTP receiver captured the reset email. The transcript hides the reset URL."),
+    ("06-reset-form.png", "Following the emailed link opens the form for entering and confirming a new password."),
+    ("07-password-reset.png", "The reset succeeds and the member returns to the sign-in page."),
+    ("08-used-link.png", "Submitting the same reset link again produces an error."),
+    ("09-dashboard.png", "Signing in with the recovered password opens the member dashboard."),
+]
 
 
 def replace_paragraph(paragraph, text):
@@ -65,12 +79,24 @@ replace_paragraph(paragraphs[20], "2. For a real active account, Spring Mail del
 replace_paragraph(paragraphs[21], "3. The user submits matching strong passwords. The backend atomically consumes the token, stores a BCrypt password hash, invalidates sessions, and returns the user to Login.")
 replace_paragraph(
     paragraphs[30],
-    "No live screenshots were captured. Docker Desktop/PostgreSQL/Mailpit were unavailable on the school-managed computer without administrator approval; this report does not treat automated tests as screenshot evidence.",
+    "Figures 1–9 follow a disposable member account in the running React and Spring Boot application. This browser session used an isolated H2 test database and a local SMTP receiver. Verification with PostgreSQL and Mailpit remains pending.",
 )
 replace_paragraph(
     paragraphs[31],
-    "Automated evidence: the Spring Boot integration suite passed 12 tests with 0 failures/errors on November 26, 2026, and the React Vite production build passed. The live screenshot checklist is documented in TESTING.md.",
+    "The Spring Boot integration suite passed all 12 tests on November 26, 2026. The React production build also passed. TESTING.md records the browser checks and the remaining Docker verification.",
 )
+section = doc.sections[0]
+width = section.page_width - section.left_margin - section.right_margin
+for number, (filename, description) in enumerate(SCREENSHOTS, 1):
+    caption = f"Figure {number}. {description}"
+    figure = paragraphs[31].insert_paragraph_before()
+    figure.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    figure.paragraph_format.keep_together = True
+    figure.paragraph_format.space_after = Pt(10)
+    picture = figure.add_run().add_picture(str(DOCS / "screenshots" / filename), width=width)
+    picture._inline.docPr.set("descr", description)
+    figure.add_run().add_break()
+    figure.add_run(caption).italic = True
 replace_paragraph(paragraphs[40], "Name: Jehryn Laurino")
 replace_paragraph(paragraphs[41], "Date: 11/26/2026")
 
@@ -90,7 +116,7 @@ fill_row(doc.tables[0], 5, ["Date Submitted", "11/26/2026"])
 fill_row(doc.tables[1], 1, ["Account Registration", "Complete", "Increment 1 regression test passed; public registration creates MEMBER accounts with BCrypt passwords."])
 fill_row(doc.tables[1], 2, ["Login / Logout", "Complete", "Increment 1 regression test passed; server-side sessions, CSRF protection, and logout remain enforced."])
 fill_row(doc.tables[1], 3, ["Role-Based User Dashboard", "Complete", "MEMBER, ORGANIZER, and ADMIN backend authorization regression tests passed."])
-fill_row(doc.tables[1], 4, ["User Profile (view and edit)", "Partial", "Implemented and integration-tested with database persistence. Live PostgreSQL/browser verification remains pending because Docker was unavailable."])
+fill_row(doc.tables[1], 4, ["User Profile (view and edit)", "Partial", "A member saved a name change and refreshed the page in the H2 browser run (Figure 1). Persistence across a PostgreSQL restart still needs verification."])
 
 # Role and flow details.
 fill_row(doc.tables[2], 1, ["MEMBER / ORGANIZER / ADMIN", "Authenticated users view and update only their own profile and change only their own password. Existing sessions end after a password update."])
@@ -124,11 +150,11 @@ fill_row(doc.tables[7], 3, ["main", "main", "N/A", "Increment 2 release commit i
 
 # Remaining work and limitations.
 fill_row(doc.tables[8], 1, ["1", "Live Docker verification", "Run the PostgreSQL and Mailpit containers, complete the browser flow, and confirm actual email delivery on a permitted computer.", "High", "Project Development 2 evidence"])
-fill_row(doc.tables[8], 2, ["2", "Capture real screenshots", "Capture the live profile, Mailpit/reset, validation, and change-password evidence after the Docker demonstration.", "High", "Project Development 2 evidence"])
+fill_row(doc.tables[8], 2, ["2", "Verify PostgreSQL persistence", "Restart the backend against the same PostgreSQL database and confirm the updated profile name remains available.", "High", "Project Development 2 evidence"])
 fill_row(doc.tables[8], 3, ["3", "Campus events and lost-and-found modules", "Implement the remaining approved SRS modules in later increments.", "Medium", "Later increment"])
 
 fill_row(doc.tables[9], 1, ["ISS-01", "Live PostgreSQL/Mailpit delivery was not verified on the school-managed computer.", "Docker Desktop requires administrator approval; no local Docker/PostgreSQL runtime was available.", "Major", "Open — configuration and automated H2 integration tests are complete; run the documented live checklist on a permitted machine."])
-fill_row(doc.tables[9], 2, ["ISS-02", "No authentic runtime screenshots are included in this report.", "Live services were unavailable, so screenshots could not be honestly captured.", "Minor", "Open — capture only after the documented browser/Mailpit verification."])
+fill_row(doc.tables[9], 2, ["ISS-02", "Browser screenshot evidence", "Follow the account settings and recovery flow in Figures 1–9.", "Minor", "Resolved. The nine captures cover the H2 browser run and locally received reset email."])
 
 # Do not invent credentials. No live database was started for this update.
 fill_row(doc.tables[10], 1, ["ADMIN", "Not provided — no live PostgreSQL database was started", "Not provided"])
@@ -147,6 +173,11 @@ if "--html" in sys.argv:
     for child in doc.element.body.iterchildren():
         if isinstance(child, CT_P):
             text = Paragraph(child, doc).text.strip()
+            images = child.xpath(".//a:blip/@r:embed")
+            if images:
+                data = b64encode(doc.part.related_parts[images[0]].blob).decode("ascii")
+                blocks.append(f'<figure><img src="data:image/png;base64,{data}" alt="{escape(text)}"><figcaption>{escape(text)}</figcaption></figure>')
+                continue
             if not text:
                 continue
             if text[0].isdigit() and (text[1:2] == "." or text.startswith("2.1") or text.startswith("2.2")):
@@ -175,6 +206,9 @@ if "--html" in sys.argv:
       h2 { font-size:13pt; color:#17365d; border-bottom:1px solid #9fbad0; margin:18pt 0 7pt; padding-bottom:2pt; }
       h3 { font-size:10.5pt; color:#17365d; margin:12pt 0 4pt; }
       p { margin:4pt 0 7pt; }
+      figure { width: 164mm; max-width:100%; margin: 4mm auto; break-inside:avoid; }
+      figure img { width:100%; height:auto; display:block; border:0.2mm solid #cfdbdf; box-sizing:border-box; }
+      figcaption { font-size:10pt; line-height:1.3; margin-top:1.5mm; }
       table { border-collapse:collapse; width:100%; margin:5pt 0 12pt; page-break-inside:avoid; }
       th { background:#d9eaf7; font-weight:bold; }
       th, td { border:1px solid #7890a5; vertical-align:top; padding:4pt; text-align:left; word-break:break-word; }

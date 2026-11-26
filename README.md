@@ -138,7 +138,7 @@ The backend integration suite has **12 H2-backed tests in PostgreSQL compatibili
 
 - Backend test suite: passed — 12 tests, 0 failures, 0 errors after the Increment 2 session-invalidation fix.
 - Frontend production build: passed — Vite transformed 49 modules and completed successfully in 510 ms; see `TESTING.md` for the result.
-- Docker/PostgreSQL/Mailpit browser demonstration: **not executed on this school-managed computer** because Docker Desktop and PostgreSQL require administrator approval. The Compose configuration and application integration are present, but this is intentionally not represented as live-email or live-PostgreSQL evidence.
+- A separate browser run exercised profile editing, password changes, SMTP delivery, password reset, and sign-in with the new password using H2 and a local SMTP receiver. Figures 1–9 appear in the [Increment 2 report](docs/Increment-2-Completion-Report.pdf). Verification with the Docker Compose PostgreSQL and Mailpit services remains pending.
 
 ### Demonstration checklist (do these live)
 

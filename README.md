@@ -1,48 +1,86 @@
-# CampusConnect – Increment 3 development checkpoint
+# CampusConnect
 
-This checkpoint adds campus events, event registration, lost-and-found reports, photo handling, map locations, and administrator moderation. The [approved SRS](docs/IT342_G01_Laurino_Jehryn_ProjectName_SRS.pdf) and [seven browser screenshots](docs/increment3-screenshots) are in the repository.
+CampusConnect lets campus members discover and register for events, report lost or found items, and search the public listings. Organizers publish events and track attendance. Administrators manage roles and moderate both listings.
 
-### Continue on macOS
+**IT342 · Project Development Increment 3 · Jehryn D. Laurino · G01**
 
-Use JDK 21, Maven, Node.js with npm, and a running Docker installation with Compose. From a fresh clone, copy the environment example and edit your local database and first-run administrator credentials.
+**Deadline** December 2, 2026 at 11:59 PM Philippine time (UTC+8).
+
+[Increment 3 completion report](docs/Increment-3-Completion-Report.pdf) · [Editable DOCX](docs/Increment-3-Completion-Report.docx) · [Approved SRS](docs/IT342_G01_Laurino_Jehryn_ProjectName_SRS.pdf) · [Verification results by SRS ID](TESTING.md) · [Increment 2 report](docs/Increment-2-Completion-Report.pdf)
+
+## Continue on macOS
+
+Use JDK 21, Maven 3.9+, Node.js with npm, and either native PostgreSQL 16 and Mailpit or the supplied Docker Compose services. Run these commands from the repository root. On this Mac the JDK is bundled with Android Studio. For a separately installed JDK use `export JAVA_HOME="$(/usr/libexec/java_home -v 21)"`.
 
 ```sh
-cp .env.example .env
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -v
+node -v
+npm -v
+```
+
+The private `.env` is already configured for local use on Jehryn’s Mac. On a fresh checkout, create it once, choose unique database and bootstrap administrator passwords, and enter them locally. The bootstrap settings create an administrator on the first start.
+
+```sh
+(umask 077 && test ! -e .env && cp .env.example .env)
 open -e .env
 ```
 
-After saving the file, start PostgreSQL and Mailpit, then start the backend in the same terminal.
+1. **Database and mail.** With Homebrew installed, run the following in one terminal. The script creates a private cluster and inbox under the ignored `.campusconnect-local/` directory and binds both services to loopback. Ctrl-C stops the services. Restart the same script to reuse the database. It uses the default local `DB_URL` from the example. For Docker, use `docker compose --env-file .env up -d` in place of the two commands below.
 
-```sh
-docker compose --env-file .env up -d
-bash scripts/start-backend.sh
-```
+   ```sh
+   brew install postgresql@16 mailpit
+   bash scripts/start-mac-services.sh
+   ```
 
-In a second terminal, open the cloned repository and run:
+2. **Backend.** In a second terminal, select JDK 21 as above, then start Spring Boot.
 
-```sh
-cd frontend
-npm ci
-npm run dev -- --host 127.0.0.1
-```
+   ```sh
+   SERVER_ADDRESS=127.0.0.1 bash scripts/start-backend.sh
+   ```
 
-Open the local address printed by Vite. Browse `/events` or `/reports`. To create an event, use **User Management** as the bootstrap administrator to grant a registered account the **ORGANIZER** role. A **MEMBER** can register once the organizer publishes the event.
+3. **Frontend.** In a third terminal, install the locked dependencies and start Vite.
 
-### Results and remaining work
+   ```sh
+   cd frontend
+   npm ci
+   npm run dev -- --host 127.0.0.1 --strictPort
+   ```
 
-All 15 backend tests passed and the React production build succeeded. The Chrome browser run used real PostgreSQL 16 and a local SMTP receiver. It checked the race for the last event place, report ownership, moderation, upload errors, password recovery, and persistence after restarting Spring Boot. The Windows-specific verification harness is in [scripts/verify_increment3.py](scripts/verify_increment3.py). The Maven tests and frontend build can also be run on macOS.
+Open [CampusConnect](http://localhost:5173), [backend health through Vite](http://localhost:5173/api/health), or the [local Mailpit inbox](http://localhost:8025). The backend reads `.env` at startup. Restart it after changing provider values. After initial administrator setup, both `APP_ADMIN_EMAIL` and `APP_ADMIN_PASSWORD` may be cleared together. Changing `DB_PASSWORD` alone does not rotate an existing database role’s password.
 
-Live Google Maps rendering and successful Cloudinary uploads still need provider credentials. Set the Google browser key, map ID, approved campus bounds, and Cloudinary settings in your private `.env` before those checks. The separate Increment 3 completion PDF and final submission documentation are pending. Optional claims and related-report suggestions are deferred.
+### Windows startup
 
-## Increment 2 record
+Use the same private `.env`, run `docker compose --env-file .env up -d`, then `.\scripts\start-backend.ps1` from PowerShell. In a second terminal use `cd frontend`, `npm ci`, and `npm run dev`. Browser-test commands for both platforms are in [TESTING.md](TESTING.md).
 
-**CampusConnect: Campus Events and Lost-and-Found System**  
-**IT342 • Systems Integration and Architecture 1**  
-**Increment 2: Profile Management and Password Security**
+## Provider configuration
 
-This is the React + Spring Boot + PostgreSQL implementation of **SRS FR-001 to FR-005**, including the Increment 2 profile and password-security work.
+Edit the root `.env` privately. Keep the Cloudinary values on the backend. Google’s Maps JavaScript API uses a browser-visible key. Restrict that key by API and permitted website referrers.
 
-## Increment 2 additions
+| Setting | Where to obtain the value |
+| --- | --- |
+| `GOOGLE_MAPS_API_KEY` | In Google Maps Platform, select a project and obtain a Maps JavaScript API key. For a standard key, restrict the API to Maps JavaScript API and the website to `http://localhost:5173/*`. Use the same hostname in the browser. [Google setup](https://developers.google.com/maps/documentation/javascript/get-api-key) |
+| `GOOGLE_MAP_ID` | Use a JavaScript map ID from Google Cloud Console → Google Maps Platform → Map Management. [Google map IDs](https://developers.google.com/maps/documentation/javascript/map-ids/get-map-id) |
+| `CAMPUS_SOUTH`, `CAMPUS_NORTH`, `CAMPUS_WEST`, `CAMPUS_EAST` | Enter the approved campus boundary’s minimum/maximum latitude and longitude in decimal degrees. The example rectangle was used for local validation. Campus approval is pending. |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Select the intended Cloudinary product environment. Copy its cloud name and the key/secret pair from the environment’s API Keys settings. [Cloudinary credential guide](https://cloudinary.com/documentation/developer_onboarding_faq_find_credentials) |
+
+Use existing approved quota for a live demonstration. Obtain the account owner’s approval before enabling billing or incurring charges. For the live pin and photo acceptance steps, see [TESTING.md](TESTING.md#live-provider-acceptance).
+
+## Instructor demo
+
+1. Open the app in separate organizer, member, and administrator browser profiles. The Mac demo accounts are `organizer.demo@example.test` and `member.demo@example.test`. Read their passwords locally in `.campusconnect-local/demo-accounts.txt`. The administrator login and password are in the private `.env`. On a fresh database, register two members and promote one through **User management**.
+2. As organizer, create a future event with capacity one, save the draft, and publish it. Find it as a visitor by category and date. As member, register. In **My events & counts**, show one active registration. Cancel the event and show the updated status in **My registrations**.
+3. As member, create a FOUND report with a description, incident time, and location. Enter an in-bounds pin, save, then reload. Search as a visitor. Show photo validation with a text file. With approved provider settings, repeat the live acceptance checks.
+4. Mark the report resolved. As administrator, hide it through **Moderate reports**. Refresh the visitor search to show it has disappeared. For the account regression, request a password reset for a disposable member and follow the email in Mailpit.
+
+## Verification record
+
+**Windows checkpoint, November 26.** All 15 backend tests and the React build passed. Chrome checked the workflows against PostgreSQL 16 and a local SMTP receiver, including the final-place race and a Spring Boot restart. [Seven original screenshots](docs/increment3-screenshots)
+
+**Mac, November 27.** All 15 backend tests passed and Vite built 55 modules. Chrome ran against fresh PostgreSQL 16 and Mailpit. Two members competed for one place, cancellation released it, and the persisted records reopened after restarting Spring Boot. Live Google tile/marker rendering and Cloudinary upload/display/removal still require approved provider access. [Mac checks and evidence](TESTING.md)
+
+## Account security from Increments 1 and 2
 
 ### Profile management
 
@@ -69,64 +107,6 @@ The authenticated **Change password** page requires the current password, a diff
 | FR-005 | Admin views all accounts, assigns roles, activates/deactivates accounts; administrative API access restricted on server |
 
 Members include students, faculty and staff. A public registration creates only `MEMBER`; an organizer or admin role must be granted by an existing administrator. **No hardcoded demo user or authentication shortcut exists.** First-run administrator is securely created in the database using environment variables; the password is stored as BCrypt, not plaintext.
-
-Events, registrations, maps, Cloudinary and lost-and-found records are planned for later increments and **are not implemented in Increment 1**. The dashboard labels these future modules as upcoming; they are not fake buttons.
-
-## Requirements
-
-- Java **21** (JDK)
-- Apache Maven **3.9+** (`mvn --version` should work)
-- Node.js **20.19+ or 22+**, with npm
-- Docker Desktop (for the PostgreSQL database and Mailpit email inbox) **or** a locally installed PostgreSQL 16 server plus SMTP service
-- Git (for your individual repository)
-
-## Quick setup (Windows PowerShell)
-
-Open the project folder in VS Code or IntelliJ:
-
-1. Copy `.env.example` to `.env`. Change `DB_PASSWORD` to a unique local development password. Set `APP_ADMIN_EMAIL` and `APP_ADMIN_PASSWORD` to credentials **you choose and keep private**. Passwords must be 10-72 characters and include uppercase, lowercase, a number, and a symbol. Optionally set `APP_ALLOWED_EMAIL_DOMAIN` after confirming your actual campus domain; leave it empty if you need to demo with test email addresses.
-2. Start **Docker Desktop**. From the project root, run:
-   ```powershell
-   docker compose --env-file .env up -d
-   docker compose ps
-   ```
-   This starts PostgreSQL on port `5432`, Mailpit SMTP on port `1025`, and the Mailpit inbox at **http://localhost:8025**. For a local PostgreSQL installation instead, manually create a database `campusconnect` and a role `campusconnect` with the password set in `.env`; configure a real SMTP service for password-reset delivery.
-3. Start the Spring Boot backend in a new PowerShell terminal:
-   ```powershell
-   .\scripts\start-backend.ps1
-   ```
-   If your PowerShell policy blocks scripts, run `Set-ExecutionPolicy -Scope Process Bypass` in **that terminal only**, then rerun the script.
-4. Start the React frontend in another terminal:
-   ```powershell
-   cd frontend
-   npm install
-   npm run dev
-   ```
-5. Open **http://localhost:5173**. Register a Member, log in, and test your dashboard, **My Account**, and **Change password**. Sign out. To demonstrate reset password, choose **Forgot password?**, then open the Mailpit inbox and follow the real emailed link. Then log in using the administrator credentials you chose, open **User Management**, and change your Member to `ORGANIZER`.
-6. Refresh the Member's browser (or log out and in). They should see the Organizer dashboard. An Admin cannot be created via public registration.
-
-### Mac / Linux
-
-Run steps 1–2 above, then in one terminal `./scripts/start-backend.sh`; in another run `cd frontend && npm install && npm run dev`.
-
-### First-run admin detail
-
-The initial admin is created **only if an account with `APP_ADMIN_EMAIL` does not already exist**. To avoid leaving the plaintext bootstrap password in your environment, remove `APP_ADMIN_PASSWORD` from `.env` after you confirm the first admin was created, then restart the backend. It will never overwrite a previously saved account or reset its password. If you have an existing member account with the same email, it **will not be promoted** automatically. Change roles using an existing admin.
-
-If you change `DB_PASSWORD` after PostgreSQL has already created its Docker volume, the existing PostgreSQL password does not change automatically. Either change the role password inside PostgreSQL or recreate the **development-only** volume after backing up any wanted data. Do not use `docker compose down -v` casually because it deletes database data.
-
-## Architecture
-
-```text
-React (localhost:5173)
-  |   (Vite /api proxy, cookies included)
-  v
-Spring Boot (localhost:8080)
-  |--> Spring Security: HttpOnly session, CSRF protection, BCrypt, RBAC
-  |--> Controllers --> AccountService --> UserRepository (JPA)
-  v
-PostgreSQL 16 (localhost:5432) -> app_users (real persisted accounts)
-```
 
 ### Account fields stored
 
@@ -156,87 +136,3 @@ Increment 2 adds `password_reset_tokens` with `id`, `user_id` (foreign key), a u
 | `/api/health` | GET | Public | Check Spring Boot is listening |
 
 **Security:** Sessions are held on the backend and identified by an **HttpOnly**, `SameSite=Lax` cookie; the frontend never stores passwords or access tokens in localStorage. Spring Security's CSRF token must be sent in `X-CSRF-TOKEN` for POST, PUT and PATCH. Backend permission checks are enforced with `@PreAuthorize`, plus a database recheck of role and active status on each request. Deactivation invalidates the affected user's existing session on their next request, and the frontend clears its protected state on HTTP 401. The Vite proxy is intended for development only. For production, run with `SPRING_PROFILES_ACTIVE=prod` behind an HTTPS reverse proxy; `application-prod.yml` requires HTTPS and marks session cookies secure.
-
-## Run tests
-
-From the project root:
-
-```bash
-mvn -f backend/pom.xml test
-cd frontend
-npm install
-npm run build
-```
-
-The backend integration suite has **12 H2-backed tests in PostgreSQL compatibility mode**. It verifies registration and persisted BCrypt hash; password complexity, confirmation and email normalization; rejection of duplicates/invalid fields; login/logout; MEMBER/ADMIN route separation; admin role promotion; immediate account deactivation; persisted own-profile updates; password changes; invalidation of a second active session; generic unknown-account recovery responses; reset email construction; token hashing, expiry, replacement, and single use; old-password rejection; and recovery/reset rate limits. `npm run build` checks the React production bundle.
-
-### Actual local verification status (November 26, 2026)
-
-- Backend test suite: passed — 12 tests, 0 failures, 0 errors after the Increment 2 session-invalidation fix.
-- Frontend production build: passed — Vite transformed 49 modules and completed successfully in 510 ms; see `TESTING.md` for the result.
-- A separate browser run exercised profile editing, password changes, SMTP delivery, password reset, and sign-in with the new password using H2 and a local SMTP receiver. Figures 1–9 appear in the [Increment 2 report](docs/Increment-2-Completion-Report.pdf). Verification with the Docker Compose PostgreSQL and Mailpit services remains pending.
-
-### Demonstration checklist (do these live)
-
-- [ ] PostgreSQL container running (`docker compose ps`)
-- [ ] Backend responds at `http://localhost:8080/api/health`
-- [ ] Register a real account; confirm it persists after backend restart
-- [ ] Try the same email twice; second attempt shows duplicate error
-- [ ] Show `app_users.password_hash` in PostgreSQL (BCrypt hash, never plaintext)
-- [ ] Enter a wrong password, then log in correctly
-- [ ] Open the MEMBER dashboard; attempt ADMIN endpoint and see HTTP 403
-- [ ] Change profile name, refresh, and confirm the persisted value is still shown
-- [ ] Change password and confirm an older second browser session is rejected
-- [ ] Request a reset password link and inspect the real message in Mailpit; confirm an unknown email receives the same generic message
-- [ ] Use the reset link once, confirm the old password fails, the new password succeeds, and a reused link is rejected
-- [ ] Use admin account to promote Member to Organizer
-- [ ] Confirm Organizer dashboard appears after refreshing/re-sign-in
-- [ ] As admin, deactivate a user; their existing session becomes unauthorized
-- [ ] Log out and confirm the protected page is no longer accessible
-
-Inspect database row hashes (never show your `.env` or passwords on a recording):
-
-```bash
-docker compose exec db psql -U campusconnect -d campusconnect \
-  -c 'SELECT id,email,role,active,password_hash FROM app_users;'
-```
-
-## GitHub submission (important)
-
-**Your instructor's actual cutoff is listed as November 19, 2026 at 9:00 PM, even though the assignment header says 9:30 PM. Use 9:00 PM as the safe deadline.** All source files must be **committed AND pushed before cutoff**; local commits alone do not count.
-
-1. Create a new **empty** repository under your individual GitHub account (e.g., `CampusConnect`). Do not select "Initialize with README" because this project already contains one.
-2. In the **project root**, run (replace your GitHub username):
-
-   ```bash
-   git init
-   git add .
-   git commit -m "feat(auth): implement registration and BCrypt passwords"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/CampusConnect.git
-   git push -u origin main
-   ```
-
-   If you add fixes after testing, commit them meaningfully (`fix(auth): correct session handling`) and push again before cutoff.
-3. **Never commit `.env`**, private passwords, access tokens, database volumes, or secret API keys. `.gitignore` excludes them.
-4. Confirm your GitHub page shows the latest code and pushed commit timestamps. Open the repository URL in an incognito window to verify it exists.
-5. Submit your repository link using the provided **Google Form**: https://forms.gle/yvRC4QJQu3kDhX718
-
-## Troubleshooting
-
-- **`mvn` not found**: install Apache Maven 3.9+ and add its `bin` folder to PATH; reopen terminal.
-- **`java` not found**: install JDK 21 and configure `JAVA_HOME`.
-- **Port 5432 in use**: stop your other PostgreSQL process or adjust the DB and Compose port together.
-- **Backend cannot connect to database**: ensure Docker Desktop is running and `DB_PASSWORD` matches the database password.
-- **Frontend shows server unreachable**: backend must be running at `http://localhost:8080` first.
-- **HTTP 403 CSRF**: use the React UI (which fetches the CSRF token). For Postman, first GET `/api/auth/csrf` with saved cookies and send `X-CSRF-TOKEN` to POST/PUT/PATCH.
-- **Account has old role**: refresh the page or sign out and in; backend permissions are re-checked against the database on every request.
-- **Already-used admin email**: bootstrap does not override it; use the existing admin to assign roles.
-
-## Requirements not delivered in Increment 1
-
-The rest of the SRS (FR-006–FR-037) is intentionally reserved for later development. This increment is a working authentication foundation, **not yet the complete CampusConnect application**.
-
-## Development note
-
-This source package is intended to be built and run on a computer with the prerequisites above. It is not a live deployed service. Run the tests and demo checklist, and fix environment-specific issues before claiming it as fully tested or submitting it.

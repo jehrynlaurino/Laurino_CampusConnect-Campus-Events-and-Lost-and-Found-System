@@ -81,7 +81,7 @@ for index in [3, 6, 9, 13, 18, 27, 29, 33, 35, 37]:
 # Project information.
 fill_row(doc.tables[0], 0, ["System Name", "CampusConnect: Campus Events and Lost-and-Found System"])
 fill_row(doc.tables[0], 1, ["Student Name", "Laurino, Jehryn"])
-fill_row(doc.tables[0], 2, ["Section", "Not provided in the workspace"])
+fill_row(doc.tables[0], 2, ["Section", "G01"])
 fill_row(doc.tables[0], 3, ["Increment", "Project Development 2 – Account Security (Vertical Slice)"])
 fill_row(doc.tables[0], 4, ["GitHub Repository", REPOSITORY])
 fill_row(doc.tables[0], 5, ["Date Submitted", "11/26/2026"])

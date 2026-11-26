@@ -40,6 +40,8 @@ open -e .env
    SERVER_ADDRESS=127.0.0.1 bash scripts/start-backend.sh
    ```
 
+   If this reports that CampusConnect is already running, continue to the frontend. To apply backend or `.env` changes, stop the existing backend first.
+
 3. **Frontend.** In a third terminal, install the locked dependencies and start Vite.
 
    ```sh

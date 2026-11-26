@@ -9,16 +9,16 @@ const details = {
     kicker: 'MEMBER PORTAL', title: 'Your campus, connected.', subtitle: 'A home for campus events and lost-and-found. Your account is ready.',
     icon: '♧', heading: 'Explore your campus',
     items: [
-      { icon: '▣', title: 'Campus Events', text: 'Discover and register for activities.', stage: 'NEXT INCREMENT' },
-      { icon: '⌕', title: 'Lost & Found', text: 'Report, search and locate missing items.', stage: 'NEXT INCREMENT' },
+      { icon: '▣', title: 'Campus Events', text: 'Discover and register for activities.', href: '/events' },
+      { icon: '⌕', title: 'Lost & Found', text: 'Report, search and locate missing items.', href: '/reports' },
     ],
   },
   ORGANIZER: {
     kicker: 'ORGANIZER PORTAL', title: 'Bring your campus together.', subtitle: 'You have been approved to organize campus activities.',
     icon: '✺', heading: 'Organizer workspace',
     items: [
-      { icon: '▣', title: 'Event Management', text: 'Create and publish campus events.', stage: 'NEXT INCREMENT' },
-      { icon: '♧', title: 'Event Registrations', text: 'View attendee lists and counts.', stage: 'NEXT INCREMENT' },
+      { icon: '▣', title: 'Event Management', text: 'Create and publish campus events.', href: '/events?scope=mine' },
+      { icon: '♧', title: 'Event Registrations', text: 'View active registration counts.', href: '/events?scope=mine' },
     ],
   },
   ADMIN: {
@@ -26,7 +26,7 @@ const details = {
     icon: '✧', heading: 'Administration tools',
     items: [
       { icon: '♙', title: 'User Management', text: 'View accounts, assign roles, and change access.', stage: 'AVAILABLE', href: '/admin/users' },
-      { icon: '▣', title: 'Content Moderation', text: 'Review campus events and item reports.', stage: 'NEXT INCREMENT' },
+      { icon: '▣', title: 'Content Moderation', text: 'Review campus events and item reports.', href: '/reports?scope=admin' },
     ],
   },
 };
@@ -52,7 +52,6 @@ export default function DashboardPage() {
       <section className="stat-card"><div className="stat-label">AUTHENTICATION</div><strong>{data ? 'Verified' : 'Checking…'}</strong><small>{data ? 'Backend-authorized session' : 'Contacting secured endpoint'}</small></section>
     </div>
     <div className="section-title"><div><div className="section-label">GET STARTED</div><h2>{config.heading}</h2></div><Link to="/account" className="text-link">Manage my profile →</Link></div>
-    <div className="feature-grid">{config.items.map(item => <article className="feature-card" key={item.title}><div className="feature-icon">{item.icon}</div><div className="feature-stage">{item.stage}</div><h3>{item.title}</h3><p>{item.text}</p>{item.href ? <Link to={item.href} className="feature-link">Open tool →</Link> : <span className="muted-note">Planned for a later increment</span>}</article>)}</div>
-    <div className="notice"><span>ⓘ</span><p>Increment 1 delivers real user accounts, secure sessions, and role-based access. Event and lost-and-found features are intentionally planned for later increments.</p></div>
+    <div className="feature-grid">{config.items.map(item => <article className="feature-card" key={item.title}><div className="feature-icon">{item.icon}</div><h3>{item.title}</h3><p>{item.text}</p>{<Link to={item.href} className="feature-link">Open tool →</Link>}</article>)}</div>
   </Layout>;
 }

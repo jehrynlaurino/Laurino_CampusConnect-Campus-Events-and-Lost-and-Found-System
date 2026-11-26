@@ -68,6 +68,8 @@ public class SecurityConfig {
           .authorizeHttpRequests(a -> a
               .requestMatchers("/api/auth/csrf", "/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/health").permitAll()
               .requestMatchers("/error").permitAll()
+              .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/events", "/api/reports",
+                  "/api/events/{id:[0-9]+}", "/api/reports/{id:[0-9]+}", "/api/campus/map").permitAll()
               .anyRequest().authenticated())
           .httpBasic(h -> h.disable())
           .formLogin(f -> f

@@ -6,9 +6,18 @@ spring:
     username: ${DB_USERNAME:campusconnect}
     password: ${DB_PASSWORD:dev_only_change_me}
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update # demo convenience; use Flyway migrations before production
     open-in-view: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/increment3.sql
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jackson:
     deserialization:
       fail-on-unknown-properties: true

@@ -21,13 +21,20 @@ export default function Layout({ children }) {
       <Link className="brand" to={rolePath(user.role)}><span className="brand-mark">C<span>✦</span></span><span>Campus<span className="brand-green">Connect</span></span></Link>
       <div className="sidebar-caption">YOUR WORKSPACE</div>
       <nav aria-label="Main navigation" className="side-nav">
+        <div className="module-links">
+          <Link to="/events">Campus events</Link>
+          {user.role==='MEMBER' && <Link to="/events?scope=registrations">My registrations</Link>}
+          {user.role!=='MEMBER' && <><Link to="/events/new">Create event</Link><Link to="/events?scope=mine">My events &amp; counts</Link></>}
+          <Link to="/reports">Lost and found</Link><Link to="/reports/new">Create report</Link><Link to="/reports?scope=mine">My reports</Link>
+          {user.role==='ADMIN' && <><Link to="/events?scope=admin">Moderate events</Link><Link to="/reports?scope=admin">Moderate reports</Link></>}
+        </div>
         <NavLink to={rolePath(user.role)} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>◫ <span>Dashboard</span></NavLink>
         <NavLink to="/account" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>◎ <span>My account</span></NavLink>
         {user.role === 'ADMIN' && <NavLink to="/admin/users" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>♙ <span>User management</span></NavLink>}
         <NavLink to="/change-password" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>Password <span>Change password</span></NavLink>
       </nav>
       <div className="sidebar-bottom">
-        <div className="sidebar-status"><span className="status-dot"/> Increment 1 • Accounts</div>
+        <div className="sidebar-status"><span className="status-dot"/> Campus workspace</div>
         <button className="logout" onClick={signOut} disabled={busy}>↪ {busy ? 'Signing out...' : 'Sign out'}</button>
         {error && <p className="inline-error" role="alert">{error}</p>}
       </div>

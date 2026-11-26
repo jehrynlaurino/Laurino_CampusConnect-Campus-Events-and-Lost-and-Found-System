@@ -1,4 +1,40 @@
-# CampusConnect – Project Increment 2
+# CampusConnect – Increment 3 development checkpoint
+
+This checkpoint adds campus events, event registration, lost-and-found reports, photo handling, map locations, and administrator moderation. The [approved SRS](docs/IT342_G01_Laurino_Jehryn_ProjectName_SRS.pdf) and [seven browser screenshots](docs/increment3-screenshots) are in the repository.
+
+### Continue on macOS
+
+Use JDK 21, Maven, Node.js with npm, and a running Docker installation with Compose. From a fresh clone, copy the environment example and edit your local database and first-run administrator credentials.
+
+```sh
+cp .env.example .env
+open -e .env
+```
+
+After saving the file, start PostgreSQL and Mailpit, then start the backend in the same terminal.
+
+```sh
+docker compose --env-file .env up -d
+bash scripts/start-backend.sh
+```
+
+In a second terminal, open the cloned repository and run:
+
+```sh
+cd frontend
+npm ci
+npm run dev -- --host 127.0.0.1
+```
+
+Open the local address printed by Vite. Browse `/events` or `/reports`. To create an event, use **User Management** as the bootstrap administrator to grant a registered account the **ORGANIZER** role. A **MEMBER** can register once the organizer publishes the event.
+
+### Results and remaining work
+
+All 15 backend tests passed and the React production build succeeded. The Chrome browser run used real PostgreSQL 16 and a local SMTP receiver. It checked the race for the last event place, report ownership, moderation, upload errors, password recovery, and persistence after restarting Spring Boot. The Windows-specific verification harness is in [scripts/verify_increment3.py](scripts/verify_increment3.py). The Maven tests and frontend build can also be run on macOS.
+
+Live Google Maps rendering and successful Cloudinary uploads still need provider credentials. Set the Google browser key, map ID, approved campus bounds, and Cloudinary settings in your private `.env` before those checks. The separate Increment 3 completion PDF and final submission documentation are pending. Optional claims and related-report suggestions are deferred.
+
+## Increment 2 record
 
 **CampusConnect: Campus Events and Lost-and-Found System**  
 **IT342 • Systems Integration and Architecture 1**  

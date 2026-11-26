@@ -10,6 +10,10 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiErrorHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String,String>> tooLarge() {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of("error","Choose a photo up to 5 MB."));
+    }
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<Map<String, String>> api(ApiException ex) {
         return ResponseEntity.status(ex.status()).body(Map.of("error", ex.getMessage()));

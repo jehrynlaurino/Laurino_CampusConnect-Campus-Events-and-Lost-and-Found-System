@@ -64,7 +64,7 @@ Edit the root `.env` privately. Keep the Cloudinary values on the backend. Googl
 | --- | --- |
 | `GOOGLE_MAPS_API_KEY` | In Google Maps Platform, select a project and obtain a Maps JavaScript API key. For a standard key, restrict the API to Maps JavaScript API and the website to `http://localhost:5173/*`. Use the same hostname in the browser. [Google setup](https://developers.google.com/maps/documentation/javascript/get-api-key) |
 | `GOOGLE_MAP_ID` | Use a JavaScript map ID from Google Cloud Console → Google Maps Platform → Map Management. [Google map IDs](https://developers.google.com/maps/documentation/javascript/map-ids/get-map-id) |
-| `CAMPUS_SOUTH`, `CAMPUS_NORTH`, `CAMPUS_WEST`, `CAMPUS_EAST` | Enter the approved campus boundary’s minimum/maximum latitude and longitude in decimal degrees. The example rectangle was used for local validation. Campus approval is pending. |
+| `CAMPUS_SOUTH`, `CAMPUS_NORTH`, `CAMPUS_WEST`, `CAMPUS_EAST` | Enter the approved campus boundary’s minimum/maximum latitude and longitude in decimal degrees. The Mac demo uses the rectangle from the example. Confirm the boundary with the campus before deployment. |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Select the intended Cloudinary product environment. Copy its cloud name and the key/secret pair from the environment’s API Keys settings. [Cloudinary credential guide](https://cloudinary.com/documentation/developer_onboarding_faq_find_credentials) |
 
 Use existing approved quota for a live demonstration. Obtain the account owner’s approval before enabling billing or incurring charges. For the live pin and photo acceptance steps, see [TESTING.md](TESTING.md#live-provider-acceptance).
@@ -80,7 +80,7 @@ Use existing approved quota for a live demonstration. Obtain the account owner�
 
 **Windows checkpoint, November 26.** All 15 backend tests and the React build passed. Chrome checked the workflows against PostgreSQL 16 and a local SMTP receiver, including the final-place race and a Spring Boot restart. [Seven original screenshots](docs/increment3-screenshots)
 
-**Mac, November 27.** All 15 backend tests passed and Vite built 55 modules. Chrome ran against fresh PostgreSQL 16 and Mailpit. Two members competed for one place, cancellation released it, and the persisted records reopened after restarting Spring Boot. Live Google tile/marker rendering and Cloudinary upload/display/removal still require approved provider access. [Mac checks and evidence](TESTING.md)
+**Mac, November 27.** All 15 backend tests passed and Vite built 55 modules. Chrome ran against fresh PostgreSQL 16 and Mailpit. Two members competed for one place, cancellation released it, and the persisted records reopened after restarting Spring Boot. Jehryn reported successful live Google Maps and Cloudinary tests on the configured Mac. A separate read-only check matched the public report’s saved coordinates and Cloudinary HTTPS URL against PostgreSQL and confirmed its stored provider public ID. [Mac checks and evidence](TESTING.md)
 
 ## Account security from Increments 1 and 2
 

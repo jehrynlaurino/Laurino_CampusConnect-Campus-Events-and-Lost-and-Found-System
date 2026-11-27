@@ -9,7 +9,7 @@
 | Chrome 158 on Apple silicon | Passed against the built React application, Spring Boot, disposable PostgreSQL 16.16 and Mailpit 1.34.0. Five browser contexts represented an administrator, an organizer, two competing members and a visitor. |
 | Persistence and recovery | Mailpit received a reset email. The emailed link reset the password. A subsequent password change worked. After restarting Spring Boot, the new password, updated profile, report and event coordinates, and cancelled event survived. The startup SQL reconciled a legacy active registration on the cancelled event. |
 | Local presentation stack | Vite proxied the Spring Boot health response on port 5173. PostgreSQL and Mailpit ran natively on loopback. The separate demo database has working accounts for all three roles. |
-| External services | Google Maps and Cloudinary credential fields were empty. The browser and database checks below cover coordinate persistence and provider-failure behavior. Live provider acceptance remains open. |
+| External services | Jehryn reported that both live acceptance workflows passed on the configured Mac. A subsequent read-only check matched a public report and its image to PostgreSQL. The isolated Chrome suite runs with provider credentials disabled to exercise outages. |
 
 ## Reproduce the Mac checks
 
@@ -65,14 +65,14 @@ The requirements are in sections 3.2–3.6 and the acceptance scenarios in secti
 | FR-017 | The member’s registration list showed ACTIVE after registration and CANCELLED after event cancellation. The legacy-row reconciliation also restored the active count to zero at restart. |
 | FR-018 | The browser saved a FOUND report, and a second member created a LOST report with the required fields. |
 | FR-019 | Removing title, type, category, description, incident time or location rejected the request. Future incident time was also rejected. |
-| FR-020 | Empty reports were saved. The photo contract test decoded JPEG, PNG and WebP, accepted three, and rejected a fourth. The browser/API rejected invalid content and an upload over 5 MiB. The decoder also limits images to 24 megapixels. Successful live upload is pending. |
+| FR-020 | Empty reports were saved. The photo contract test decoded JPEG, PNG and WebP, accepted three, and rejected a fourth. The browser/API rejected invalid content and an upload over 5 MiB. The decoder also limits images to 24 megapixels. The subsequent student-run live upload produced a persisted Cloudinary image reference. |
 | FR-021 | An OPEN report owner saved an edit. Another owner was denied. Editing a resolved report was rejected. The administrator changed report status. |
 | FR-022 | Keyword, type, category and OPEN/RESOLVED status filters returned matching reports. Hidden and closed reports disappeared from public search. |
-| FR-023 | Detail showed the description, venue, incident date/time and current status. The adapter test verified saved image references. Displaying a live Cloudinary image in the browser is pending. |
+| FR-023 | Detail showed the description, venue, incident date/time and current status. The adapter test verified saved image references. Jehryn reported viewing the uploaded image as a visitor. The signed-out API returned the same HTTPS URL stored in the demo database. |
 | FR-024 | Both the owner and administrator resolved reports. A different member’s attempt returned 403. |
-| FR-025 | An event and report accepted coordinate pairs entered in the form, saved and reopened with their location names. Missing locations and out-of-bounds pairs were rejected. Clicking a live campus map and confirming the institution’s rectangle remain pending. |
-| FR-026 | Google Maps and Advanced Marker code uses the saved position and the record’s title and location. Live rendering of both event and report markers remains pending. |
-| FR-027 | The adapter test verified the stored HTTPS URL and public ID, removal from the report, and queued provider deletion. A real Cloudinary round trip remains pending. |
+| FR-025 | An event and report accepted coordinate pairs entered in the form, saved and reopened with their location names. Missing locations and out-of-bounds pairs were rejected. Jehryn reported passing the live pin workflow. The saved demo report’s coordinates were inside the configured rectangle. |
+| FR-026 | Google Maps and Advanced Marker code uses the saved position and the record’s title and location. Jehryn reported successful live map testing. The read-only recheck found the saved report coordinates. No event row was present in the presentation database at that time. |
+| FR-027 | The adapter test verified the stored HTTPS URL and public ID, removal from the report, and queued provider deletion. Jehryn reported passing the live photo workflow. The read-only recheck found a Cloudinary public ID and HTTPS URL in the database, and the public detail returned the matching URL. |
 | FR-028 | Chrome blocked the Maps script for a saved pin and still displayed the written location. With storage unconfigured, the upload showed a retry action, retried and left zero image records. |
 | FR-031 | An administrator hid and restored the event, hid and closed the report, and changed visibility without reopening the closed report. Visitors lost access. A member’s moderation attempt was denied. |
 
@@ -83,6 +83,14 @@ Chrome also checked the list/create screens at 360, 768 and 1366 px, horizontal 
 The 12 authentication tests cover FR-001 through FR-005. They check registration and password hashing, duplicate rejection, login/logout, role boundaries, administrator promotion and deactivation, profile persistence and password changes. They also cover generic recovery responses, rate limits, token expiry/replacement/single use and invalidation of existing sessions. Chrome separately exercised account registration, all three dashboards, profile update, real SMTP reset delivery to Mailpit, sign-in with a changed password and logout. The earlier [Increment 2 report](docs/Increment-2-Completion-Report.pdf) retains its original evidence.
 
 ## Live provider acceptance
+
+**November 27, 2026.** Jehryn tested the live Maps and Cloudinary workflows below and reported that both passed. The release recheck then repeated Maven (15 passed), the Vite build (55 modules) and Chrome against a disposable PostgreSQL database and Mailpit.
+
+A separate, signed-out request through Vite returned the on-device report. The read-only check compared its latitude, longitude, written location and image references with PostgreSQL. One visible report had coordinates inside the configured rectangle and an image whose HTTPS Cloudinary URL matched the public response. Its database row also held the provider public ID. Spring Boot had loaded a Maps browser key, map ID and bounds. The presentation database had zero event rows and zero pending image-cleanup records at inspection time.
+
+The live marker appearance, visitor image display and provider-side deletion are student-observed results. The release recheck inspected persisted state and the public API. It did not repeat an external map load or remove the student’s saved image. The example rectangle is the current demo configuration.
+
+**To reproduce the live checks on an authorized account**
 
 After the owner has configured the private values in the [provider setup guide](README.md#provider-configuration) and approved any potential charges, restart Spring Boot. Visit `http://localhost:5173` so the browser origin matches the website restriction.
 
